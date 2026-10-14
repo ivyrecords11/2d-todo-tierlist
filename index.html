@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f4f2ed" />
+  <meta name="description" content="중요도와 급함을 한눈에 정리하는 2차원 티어 보드" />
+  <title>우선순위 티어 매트릭스</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="우선순위 티어 매트릭스 홈">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span>우선순위<br /><strong>티어 매트릭스</strong></span>
+    </a>
+    <div class="top-actions">
+      <span id="saveState" class="save-state" aria-live="polite">자동 저장됨</span>
+      <button class="button button-ghost" id="newBoardButton" type="button">새 보드</button>
+      <button class="button button-ghost" id="loadLatestButton" type="button">최근 보드</button>
+      <button class="button button-dark" id="saveButton" type="button">저장</button>
+      <button class="button button-accent" id="exportButton" type="button">PNG 내보내기</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div>
+        <p class="eyebrow">6 × 6 PRIORITY SYSTEM</p>
+        <h1>해야 할 일을,<br /><em>제자리에.</em></h1>
+      </div>
+      <div class="intro-copy">
+        <p>중요도와 급함을 함께 보고 판단하세요. 아래 자유 공간에 이미지나 텍스트를 붙여넣으면 바로 카드가 됩니다.</p>
+        <div class="legend" aria-label="사용 방법">
+          <span><kbd>Ctrl</kbd> + <kbd>V</kbd> 붙여넣기</span>
+          <span><span class="drag-icon">↗</span> 드래그해 이동</span>
+          <span><span class="double-icon">×2</span> 더블클릭해 편집</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="티어표 작업 공간">
+      <div class="board-heading">
+        <div>
+          <label for="boardTitle">보드 제목</label>
+          <input id="boardTitle" class="title-input" value="오늘의 우선순위" maxlength="60" />
+        </div>
+        <p id="updatedAt">아직 저장되지 않았습니다</p>
+      </div>
+
+      <div class="matrix-shell">
+        <div class="axis-y-title"><span>급함</span><small>DEADLINE</small><b>↑</b></div>
+        <div class="matrix-scroll">
+          <div id="matrix" class="matrix" aria-label="중요도와 급함 티어 매트릭스"></div>
+          <div class="axis-x-title"><b>←</b><span>중요도 <small>IMPORTANT</small></span><b>→</b></div>
+        </div>
+      </div>
+
+      <div class="free-space-wrap">
+        <div class="free-space-heading">
+          <div>
+            <span class="pulse-dot"></span>
+            <div><strong>FREE SPACE</strong><small>카드를 만들고 대기시키는 곳</small></div>
+          </div>
+          <button id="addCardButton" class="text-button" type="button">＋ 직접 추가</button>
+        </div>
+        <div id="freeSpace" class="free-space drop-zone" data-zone="free">
+          <div class="paste-hint">
+            <span class="paste-icon">⌘</span>
+            <strong>여기에 붙여넣기</strong>
+            <small>텍스트 또는 이미지를 복사한 뒤 Ctrl + V</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="history-section">
+      <div class="section-heading">
+        <div><p class="eyebrow">LOCAL ARCHIVE</p><h2>저장한 보드</h2></div>
+        <button id="clearHistoryButton" class="text-button danger" type="button">저장 기록 비우기</button>
+      </div>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <footer><span>PRIORITY MATRIX</span><p>중요한 일과 급한 일을 같은 것으로 취급하지 않기.</p><span>LOCAL FIRST</span></footer>
+
+  <dialog id="editorDialog" class="editor-dialog">
+    <form method="dialog" id="editorForm">
+      <div class="dialog-head">
+        <div><p class="eyebrow">EDIT CARD</p><h2 id="dialogTitle">카드 편집</h2></div>
+        <button class="icon-button" value="cancel" aria-label="닫기" type="submit">×</button>
+      </div>
+      <div class="editor-preview" id="editorPreview"><span>미리보기</span></div>
+      <label class="field"><span>텍스트</span><textarea id="cardText" rows="3" maxlength="160" placeholder="카드에 표시할 텍스트"></textarea></label>
+      <label class="field deadline-field"><span>마감기한</span><input id="cardDeadline" type="datetime-local" /><small>S 24시간 · A 3일 · B 7일 · C 14일 · D 30일 · F 30일 초과</small></label>
+      <label class="field file-field"><span>이미지</span><input id="cardImage" type="file" accept="image/*" /><b>이미지 선택</b><small id="fileName">PNG, JPG, WEBP</small></label>
+      <div class="image-actions"><button id="removeImageButton" class="text-button danger" type="button">이미지 제거</button><span>이미지만 있어도 저장할 수 있어요.</span></div>
+      <div class="dialog-actions">
+        <button id="deleteCardButton" class="button button-ghost danger" value="delete" type="button">카드 삭제</button>
+        <span></span>
+        <button class="button button-ghost" value="cancel" type="submit">취소</button>
+        <button id="confirmCardButton" class="button button-dark" value="default" type="button">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
