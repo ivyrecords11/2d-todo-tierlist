@@ -1,4 +1,5 @@
 const TIERS = ["S", "A", "B", "C", "D", "F"];
+const DEADLINE_TIERS = ["3일 이내", "1주일 이내", "한 달 이내", "3개월 이내", "6개월 이내", "6개월 초과"];
 const BLUE = ["#1748b8", "#3168d3", "#5c8be1", "#86aae9", "#aec9f0", "#d8e5f7"];
 const RED = ["#d92f28", "#e9554e", "#ee7772", "#f39b97", "#f7bfbd", "#fbe0df"];
 const STORAGE_KEY = "priority-tier-matrix.current.v1";
@@ -36,12 +37,25 @@ function formatDate(iso, detailed = false) {
   return new Intl.DateTimeFormat("ko-KR", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", ...(detailed ? {second:"2-digit"} : {}) }).format(new Date(iso));
 }
 function toLocalInput(iso) { if (!iso) return ""; const date = new Date(iso); return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16); }
+function addCalendarMonths(date, months) {
+  const result = new Date(date);
+  const day = result.getDate();
+  result.setDate(1);
+  result.setMonth(result.getMonth() + months);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
+}
 function deadlineInfo(iso) {
   if (!iso) return null;
-  const diff = new Date(iso).getTime() - Date.now();
+  const now = new Date();
+  const deadline = new Date(iso);
+  const diff = deadline.getTime() - now.getTime();
   const days = Math.ceil(diff / 86400000);
-  const label = diff <= 0 ? "기한 지남" : diff <= 86400000 ? "24시간 이내" : `D-${days}`;
-  return { label, overdue: diff <= 0, row: diff <= 86400000 ? 0 : diff <= 259200000 ? 1 : diff <= 604800000 ? 2 : diff <= 1209600000 ? 3 : diff <= 2592000000 ? 4 : 5 };
+  const label = diff <= 0 ? "기한 지남" : `D-${days}`;
+  const inDays = days => { const limit = new Date(now); limit.setDate(limit.getDate() + days); return deadline <= limit; };
+  const row = inDays(3) ? 0 : inDays(7) ? 1 : deadline <= addCalendarMonths(now, 1) ? 2 : deadline <= addCalendarMonths(now, 3) ? 3 : deadline <= addCalendarMonths(now, 6) ? 4 : 5;
+  return { label, overdue: diff <= 0, row };
 }
 function applyDeadlineSorting() {
   let changed = false;
@@ -81,7 +95,7 @@ function buildMatrix() {
   });
   TIERS.forEach((rowTier, row) => {
     const rowHead = document.createElement("div"); rowHead.className = "row-head"; rowHead.style.background = RED[row]; rowHead.style.color = row < 3 ? "white" : "#171817";
-    rowHead.innerHTML = `${rowTier}<small>${row === 0 ? "MOST" : row === 5 ? "LEAST" : "TIER"}</small>`; matrix.append(rowHead);
+    rowHead.innerHTML = `${rowTier}<small>${DEADLINE_TIERS[row]}</small>`; matrix.append(rowHead);
     TIERS.forEach((colTier, col) => {
       const cell = document.createElement("div"); cell.className = "matrix-cell drop-zone"; cell.dataset.zone = `${row}:${col}`; cell.dataset.coordinate = `${rowTier} × ${colTier}`; cell.setAttribute("aria-label", `급함 ${rowTier}, 중요도 ${colTier}`); matrix.append(cell);
     });
@@ -220,7 +234,7 @@ async function exportPNG() {
   TIERS.forEach((t,i)=>{ctx.fillStyle=BLUE[i];ctx.fillRect(ox+label+i*cellW,oy,cellW,head);ctx.fillStyle=i<3?"white":"#171817";ctx.font="900 34px Arial";ctx.textAlign="center";ctx.fillText(t,ox+label+i*cellW+cellW/2,oy+51);});
   let rowY=oy+head;
   for (let r=0;r<6;r++) {
-    const t=TIERS[r],cellH=rowHeights[r]; ctx.fillStyle=RED[r];ctx.fillRect(ox,rowY,label,cellH);ctx.fillStyle=r<3?"white":"#171817";ctx.font="900 34px Arial";ctx.textAlign="center";ctx.fillText(t,ox+label/2,rowY+cellH/2+11);
+    const t=TIERS[r],cellH=rowHeights[r]; ctx.fillStyle=RED[r];ctx.fillRect(ox,rowY,label,cellH);ctx.fillStyle=r<3?"white":"#171817";ctx.font="900 34px Arial";ctx.textAlign="center";ctx.fillText(t,ox+label/2,rowY+cellH/2+5);ctx.font="700 11px Arial";ctx.fillText(DEADLINE_TIERS[r],ox+label/2,rowY+cellH/2+25);
     for(let c=0;c<6;c++){const x=ox+label+c*cellW,y=rowY;ctx.fillStyle="#fffefa";ctx.fillRect(x,y,cellW,cellH);ctx.strokeStyle="#171817";ctx.lineWidth=2;ctx.strokeRect(x,y,cellW,cellH);const cards=state.cards.filter(card=>card.zone===`${r}:${c}`);for(let k=0;k<cards.length;k++)await drawExportCard(ctx,cards[k],x+10+(k%cardsPerRow)*64,y+10+Math.floor(k/cardsPerRow)*(cardH+gap),58,cardH);}
     rowY+=cellH;
   }

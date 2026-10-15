@@ -49,6 +49,7 @@ kbd { border: 1px solid #bbbdb5; background: #fff; padding: 3px 6px; border-radi
 .corner-cell small { position:absolute; font:700 8px ui-monospace,monospace; letter-spacing:.08em; }.corner-cell small:first-child { top:8px; right:7px; }.corner-cell small:last-child { bottom:8px; left:7px; }
 .col-head, .row-head { display: flex; align-items: center; justify-content: center; font-size: 29px; font-weight: 900; position: relative; }
 .col-head small, .row-head small { position:absolute; font:700 7px ui-monospace,monospace; opacity:.66; bottom:5px; letter-spacing:.06em; }
+.row-head small { width:100%; text-align:center; font-family:Pretendard,"Noto Sans KR",Arial,sans-serif; font-size:8px; letter-spacing:0; }
 .matrix-cell { position: relative; min-width: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); align-items: start; align-content: start; gap: 7px; padding: 7px 7px 24px; background: #fbfaf6; transition: background .15s, box-shadow .15s; overflow: visible; }
 .matrix-cell::before { content: attr(data-coordinate); position:absolute; right:6px; bottom:4px; color:rgba(23,24,23,.18); font:700 8px ui-monospace,monospace; pointer-events:none; }
 .matrix-cell.drag-over, .free-space.drag-over { background: #efffc0; box-shadow: inset 0 0 0 3px var(--blue); }
