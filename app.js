@@ -241,7 +241,31 @@ async function exportPNG() {
   ctx.strokeStyle="#171817";ctx.lineWidth=2;ctx.strokeRect(ox,oy,label+cellW*6,head+boardHeight);ctx.save();ctx.translate(28,oy+head+boardHeight/2);ctx.rotate(-Math.PI/2);ctx.fillStyle="#d92f28";ctx.font="900 16px Arial";ctx.textAlign="center";ctx.fillText("급함 · DEADLINE  →",0,0);ctx.restore();ctx.fillStyle="#1748b8";ctx.font="900 16px Arial";ctx.textAlign="center";ctx.fillText("←  중요도 · IMPORTANT  →",ox+label+cellW*3,H-72);ctx.textAlign="left";
   const link=document.createElement("a"); const safe=(state.title||"tier-matrix").replace(/[\\/:*?\"<>|]/g,"-").slice(0,40); const d=new Date(); const key=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;link.download=`${safe}-${key}.png`;link.href=canvas.toDataURL("image/png");link.click();showToast("날짜와 시간을 포함한 PNG를 저장했습니다");
 }
-async function drawExportCard(ctx,card,x,y,w,h){ctx.fillStyle="#fff";ctx.strokeStyle="#171817";ctx.lineWidth=1.5;ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);let textY=y+13;if(card.image){const img=await loadCanvasImage(card.image);if(img){const imageH=card.text?72:h-4;const ratio=Math.max(w/img.width,imageH/img.height);const sw=w/ratio,sh=imageH/ratio,sx=(img.width-sw)/2,sy=(img.height-sh)/2;ctx.drawImage(img,sx,sy,sw,sh,x+2,y+2,w-4,imageH-4);textY=y+imageH+14;}}if(card.deadline){ctx.fillStyle="#d92f28";ctx.font="800 7px Arial";ctx.textAlign="left";ctx.fillText(deadlineInfo(card.deadline).label,x+4,y+h-5);}if(card.text){ctx.fillStyle="#171817";ctx.font="700 9px Arial";ctx.textAlign="left";wrapLines(ctx,card.text,w-8,3).forEach((line,i)=>ctx.fillText(line,x+4,textY+i*11));}}
+async function drawExportCard(ctx,card,x,y,w,h){
+  ctx.fillStyle="#fff";ctx.strokeStyle="#171817";ctx.lineWidth=1.5;ctx.fillRect(x,y,w,h);ctx.strokeRect(x,y,w,h);
+  let contentTop=y+3;
+  if(card.deadline){
+    const deadline=deadlineInfo(card.deadline);
+    ctx.font="800 7px Arial";ctx.textAlign="left";
+    const badgeWidth=Math.min(w-6,ctx.measureText(deadline.label).width+8);
+    ctx.fillStyle=deadline.overdue?"#171817":"#d92f28";ctx.fillRect(x+3,y+3,badgeWidth,12);
+    ctx.fillStyle="#fff";ctx.fillText(deadline.label,x+7,y+11);
+    contentTop=y+18;
+  }
+  let textY=contentTop+10;
+  if(card.image){
+    const img=await loadCanvasImage(card.image);
+    if(img){
+      const imageH=h-(contentTop-y)-(card.text?34:3)-3;
+      const imageW=w-4;
+      const ratio=Math.max(imageW/img.width,imageH/img.height);
+      const sw=imageW/ratio,sh=imageH/ratio,sx=(img.width-sw)/2,sy=(img.height-sh)/2;
+      ctx.drawImage(img,sx,sy,sw,sh,x+2,contentTop,imageW,imageH);
+      textY=contentTop+imageH+11;
+    }
+  }
+  if(card.text){ctx.fillStyle="#171817";ctx.font="700 9px Arial";ctx.textAlign="left";wrapLines(ctx,card.text,w-8,3).forEach((line,i)=>ctx.fillText(line,x+4,textY+i*11));}
+}
 
 document.addEventListener("paste", handlePaste);
 titleInput.addEventListener("input", () => { state.title=titleInput.value; markChanged(); });
