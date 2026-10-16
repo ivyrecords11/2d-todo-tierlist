@@ -179,6 +179,45 @@ async function saveSnapshot() {
 }
 function loadSnapshot(snapshot) { state = { id:snapshot.id, title:snapshot.title, cards:structuredClone(snapshot.cards), updatedAt:snapshot.updatedAt }; persistCurrent(); render(); showToast("저장한 보드를 불러왔습니다"); window.scrollTo({top:260, behavior:"smooth"}); }
 
+function boardFileBaseName(title) { return (title || "priority-board").replace(/[\\/:*?"<>|]/g,"-").slice(0,40) || "priority-board"; }
+function downloadBlob(blob, filename) {
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download=filename;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function exportBoardFile() {
+  const exportedAt=new Date().toISOString();
+  const payload={format:"priority-tier-matrix-board",version:1,exportedAt,board:structuredClone(state)};
+  const stamp=exportedAt.replace(/[-:]/g,"").replace(/\.\d{3}Z$/, "Z");
+  downloadBlob(new Blob([JSON.stringify(payload,null,2)],{type:"application/json"}),`${boardFileBaseName(state.title)}-${stamp}.json`);
+  showToast("이미지를 포함한 보드 파일을 내보냈습니다");
+}
+function validateImportedBoard(payload) {
+  if (!payload || payload.format!=="priority-tier-matrix-board" || payload.version!==1 || !payload.board || typeof payload.board!=="object") throw new Error("지원하지 않는 보드 파일입니다");
+  const board=payload.board;
+  if (typeof board.title!=="string" || !Array.isArray(board.cards) || board.cards.length>500) throw new Error("보드 제목이나 카드 목록을 확인해 주세요");
+  const cards=board.cards.map(card=>{
+    if (!card || typeof card!=="object" || typeof card.text!=="string" || typeof card.image!=="string") throw new Error("카드 데이터가 올바르지 않습니다");
+    if (card.image && !/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/]*={0,2}$/i.test(card.image)) throw new Error("이미지 데이터가 올바르지 않습니다");
+    if (card.deadline && (typeof card.deadline!=="string" || !Number.isFinite(Date.parse(card.deadline)))) throw new Error("마감기한 데이터가 올바르지 않습니다");
+    if (card.zone!=="free" && !/^[0-5]:[0-5]$/.test(card.zone)) throw new Error("카드 위치 데이터가 올바르지 않습니다");
+    return {id:typeof card.id==="string"?card.id:uid(),text:card.text,image:card.image,deadline:card.deadline||"",zone:card.zone};
+  });
+  return {id:uid(),title:board.title.slice(0,60)||"제목 없는 보드",cards,updatedAt:new Date().toISOString()};
+}
+async function importBoardFile(file) {
+  if (!file) return;
+  try {
+    if (file.size>100*1024*1024) throw new Error("파일은 100MB 이하만 불러올 수 있습니다");
+    const imported=validateImportedBoard(JSON.parse(await file.text()));
+    if (state.cards.length || state.id || titleInput.value.trim() !== "오늘의 우선순위") await saveSnapshot();
+    state=imported;
+    applyDeadlineSorting();
+    if (!await persistCurrent()) throw new Error("불러온 보드를 저장하지 못했습니다");
+    render();
+    showToast("보드를 불러왔습니다");
+  } catch(error) { showToast(error.message||"보드 파일을 읽지 못했습니다"); }
+}
+
 function renderHistory() {
   const items = getHistory();
   if (!items.length) { historyList.innerHTML = `<p class="history-empty">아직 저장한 보드가 없습니다. 완성된 보드를 저장하면 여기에 표시됩니다.</p>`; return; }
@@ -278,6 +317,10 @@ cardDeadline.addEventListener("input", () => { editingDeadline = cardDeadline.va
 cardImage.addEventListener("change", async () => { const file=cardImage.files[0];if(file){editingImage=await readImage(file);fileName.textContent=file.name;updateEditorPreview();} });
 document.querySelector("#saveButton").addEventListener("click", saveSnapshot);
 document.querySelector("#exportButton").addEventListener("click", exportPNG);
+document.querySelector("#exportBoardButton").addEventListener("click", exportBoardFile);
+const importBoardFileInput=document.querySelector("#importBoardFile");
+document.querySelector("#importBoardButton").addEventListener("click",()=>importBoardFileInput.click());
+importBoardFileInput.addEventListener("change",async()=>{await importBoardFile(importBoardFileInput.files?.[0]);importBoardFileInput.value="";});
 document.querySelector("#loadLatestButton").addEventListener("click", () => { const latest=getHistory()[0];if(latest)loadSnapshot(latest);else showToast("저장한 보드가 아직 없습니다"); });
 document.querySelector("#newBoardButton").addEventListener("click", () => { state={id:null,title:"새 우선순위 보드",cards:[],updatedAt:null};persistCurrent();render();showToast("새 보드를 시작했습니다"); });
 document.querySelector("#clearHistoryButton").addEventListener("click", () => { setHistory([]);renderHistory();showToast("저장 기록을 비웠습니다"); });

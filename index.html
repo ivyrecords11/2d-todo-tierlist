@@ -48,6 +48,12 @@
         <p id="updatedAt">아직 저장되지 않았습니다</p>
       </div>
 
+      <div class="board-file-actions" aria-label="보드 파일">
+        <button id="exportBoardButton" class="button button-ghost" type="button">JSON 내보내기</button>
+        <button id="importBoardButton" class="button button-ghost" type="button">JSON 불러오기</button>
+        <input id="importBoardFile" type="file" accept="application/json,.json" hidden />
+      </div>
+
       <div class="matrix-shell">
         <div class="axis-y-title"><span>급함</span><small>DEADLINE</small><b>↑</b></div>
         <div class="matrix-scroll">
